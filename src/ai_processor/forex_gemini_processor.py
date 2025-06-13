@@ -75,16 +75,16 @@ class ForexGeminiProcessor:
             return self._create_fallback_forex_message(message_data)
     
     async def process_image_message(self, message_data: Dict[str, Any]) -> str:
-        """Process chart image for forex trading signals"""
+        """Process chart image for forex trading signals using enhanced methodology"""
         if self.fallback_mode:
             return self._create_fallback_forex_message(message_data, "Chart image received")
         
         start_time = time.time()
         
         try:
-            # Step 1: Analyze the chart image
+            # Step 1: Analyze the chart image with enhanced methodology
             if message_data.get('media_path'):
-                chart_analysis = await self._analyze_forex_chart(message_data['media_path'])
+                chart_analysis = await self._analyze_forex_chart_enhanced(message_data['media_path'])
                 
                 # Add analysis to message data
                 message_data['chart_analysis'] = chart_analysis
@@ -93,8 +93,8 @@ class ForexGeminiProcessor:
                 chart_analysis = "Chart could not be processed"
                 message_data['chart_analysis'] = chart_analysis
             
-            # Step 2: Format the forex signal with chart analysis
-            formatted_message = await self._format_forex_signal(message_data, chart_analysis)
+            # Step 2: Format the forex signal with enhanced chart analysis
+            formatted_message = await self._format_forex_signal_enhanced(message_data, chart_analysis)
             
             processing_time = time.time() - start_time
             logger.log_ai_processing("forex-chart", processing_time)
@@ -105,8 +105,173 @@ class ForexGeminiProcessor:
             logger.error(f"❌ Error processing forex chart: {e}")
             return self._create_fallback_forex_message(message_data, "Chart analysis failed")
     
+    async def _analyze_forex_chart_enhanced(self, image_path: str) -> str:
+        """Enhanced forex chart analysis using the proper methodology from PDF instructions"""
+        try:
+            # Load and prepare image
+            image = Image.open(image_path)
+            
+            # Create the enhanced forex chart analysis prompt based on PDF instructions
+            enhanced_chart_prompt = """
+            You are analyzing a forex (or commodity) trade signal chart, typically from platforms like TradingView. 
+            Extract and summarize the key trade setup details following these EXACT steps:
+
+            **STEP-BY-STEP ANALYSIS:**
+
+            1. **Identify the Instrument:**
+               - Look for the instrument name at the top (e.g., "Gold Spot / U.S. Dollar" or "XAUUSD")
+               - Common formats: EURUSD, GBPUSD, XAUUSD, etc.
+
+            2. **Chart Timeframe:**
+               - Find the chart timeframe (e.g., 15m, 1h, 4h, 1D) usually displayed near the instrument name or at the bottom
+
+            3. **Current Price:**
+               - Note the current price, buy/sell prices, and percentage change, typically shown at the top
+
+            4. **Trade Direction:**
+               - Determine if the setup is for a BUY (long) or SELL (short) position
+               - Look for colored zones: blue/green usually indicates target/profit (BUY direction), red/pink indicates stop loss (risk)
+               - If blue/green zone is ABOVE current price = BUY signal
+               - If blue/green zone is BELOW current price = SELL signal
+
+            5. **Entry Price:**
+               - Identify the entry price, often marked by a horizontal line or near the current price
+               - May be at the boundary between colored zones
+
+            6. **Take Profit Target:**
+               - Find the take profit level, usually at the end of the blue/green box or labeled with a price
+               - This is where the trade should close for profit
+
+            7. **Stop Loss:**
+               - Find the stop loss level, usually at the end of the red/pink box or labeled with a price  
+               - This is the risk management exit point
+
+            8. **Risk-Reward Ratio:**
+               - Calculate or note the risk-reward ratio, often indicated by the size of the colored boxes or numbers
+               - Format: Risk vs Reward (e.g., 25.57 points reward vs. 5.44 points risk = 4.7:1)
+
+            9. **Expected Duration:**
+               - Note any time or bar count mentioned for the trade (e.g., "13 bars, 3h 15m")
+
+            10. **Other Chart Details:**
+                - Mention any additional support/resistance levels, candlestick patterns, or notes visible
+
+            **OUTPUT FORMAT - Use this EXACT structure:**
+
+            **INSTRUMENT**: [Instrument name]
+            **TIMEFRAME**: [Chart timeframe]  
+            **CURRENT PRICE**: [Current price with change %]
+            **TRADE DIRECTION**: [BUY/SELL] ([Long/Short])
+            **ENTRY PRICE**: [Entry level]
+            **TAKE PROFIT**: [Target level]
+            **STOP LOSS**: [Risk level]
+            **RISK-REWARD RATIO**: [Calculate ratio if possible]
+            **EXPECTED DURATION**: [Time/bars if visible]
+            **ADDITIONAL NOTES**: [Any other relevant info]
+
+            **CRITICAL RULES:**
+            - Focus on extracting only actionable trade details
+            - Ignore drawing tools or unrelated chart elements  
+            - If any data is missing or unclear, write "Not visible" or "Not specified"
+            - Be precise with price levels - look for exact numbers
+            - Pay attention to colored zones for direction determination
+            - Look for horizontal lines indicating key levels
+
+            **EXAMPLE OUTPUT:**
+            **INSTRUMENT**: Gold Spot / U.S. Dollar (XAUUSD)
+            **TIMEFRAME**: 15m
+            **CURRENT PRICE**: 3,361.06 (+0.25%)
+            **TRADE DIRECTION**: BUY (Long)
+            **ENTRY PRICE**: 3,361.06
+            **TAKE PROFIT**: 3,381.01
+            **STOP LOSS**: 3,355.62
+            **RISK-REWARD RATIO**: Approx. 4.7:1 (19.95 reward vs 5.44 risk)
+            **EXPECTED DURATION**: 13 bars (3h 15m)
+            **ADDITIONAL NOTES**: Strong support level, bullish momentum
+
+            Now analyze the provided chart image following these instructions exactly.
+            """
+            
+            # Generate enhanced chart analysis
+            response = self.vision_model.generate_content([enhanced_chart_prompt, image])
+            analysis = response.text.strip()
+            
+            logger.debug(f"📊 Enhanced chart analyzed: {analysis[:150]}...")
+            return analysis
+            
+        except Exception as e:
+            logger.error(f"❌ Error analyzing forex chart with enhanced method: {e}")
+            return "Unable to analyze chart - manual review required"
+    
+    async def _format_forex_signal_enhanced(self, message_data: Dict[str, Any], chart_analysis: str) -> str:
+        """Enhanced forex signal formatting using structured chart analysis"""
+        prompt = f"""
+        Create a professional forex trading signal notification based on this structured chart analysis.
+
+        **STRUCTURED CHART ANALYSIS:**
+        {chart_analysis}
+
+        **ORIGINAL MESSAGE:** {message_data.get('text', 'Chart image received')}
+        **SOURCE:** {message_data['source']} ({message_data['chat_title']})
+        **SENDER:** {message_data['sender_name']}
+        **TIME:** {message_data['timestamp']}
+
+        **TASK:** Extract the trading information from the structured analysis and create a mobile-optimized notification.
+
+        **REQUIRED OUTPUT FORMAT:**
+        🔔 **FOREX TRADE SIGNAL**
+        
+        📈 **Instrument**: [Extract from INSTRUMENT field]
+        💰 **Entry**: [Extract from ENTRY PRICE field]  
+        🛑 **Stop Loss**: [Extract from STOP LOSS field]
+        🎯 **Take Profit**: [Extract from TAKE PROFIT field]
+        📊 **Risk/Reward**: [Extract from RISK-REWARD RATIO field]
+        📱 **Direction**: [Extract from TRADE DIRECTION field]
+        ⏰ **Timeframe**: [Extract from TIMEFRAME field]
+        
+        📝 **Setup**: [Brief description from ADDITIONAL NOTES]
+        👤 **Source**: {message_data['sender_name']} ({message_data['chat_title']})
+        
+        ---
+        🤖 AI Chart Analysis
+        ⚡ Ready to Trade!
+
+        **FORMATTING RULES:**
+        - Use EXACT price levels from the analysis (don't modify numbers)
+        - If any field shows "Not visible" or "Not specified", write "Manual Review"
+        - Keep total message under 400 characters for mobile notifications
+        - Ensure all key trading info is included
+        - Make it immediately actionable for traders
+        - Use the DIRECTION field to determine BUY/SELL
+        - Include risk/reward ratio if available
+
+        **EXAMPLE OUTPUT:**
+        🔔 **FOREX TRADE SIGNAL**
+        
+        📈 **Instrument**: XAUUSD
+        💰 **Entry**: 3,361.06
+        🛑 **Stop Loss**: 3,355.62  
+        🎯 **Take Profit**: 3,381.01
+        📊 **Risk/Reward**: 4.7:1
+        📱 **Direction**: BUY
+        ⏰ **Timeframe**: 15m
+        
+        📝 **Setup**: Strong support, bullish momentum
+        👤 **Source**: TradeBot (Forex Signals)
+        
+        ---
+        🤖 AI Chart Analysis
+        ⚡ Ready to Trade!
+
+        Create the notification now using the structured analysis data.
+        """
+        
+        response = await self._generate_response(self.text_model, prompt)
+        return response
+    
+    # Keep the original _analyze_forex_chart method as backup
     async def _analyze_forex_chart(self, image_path: str) -> str:
-        """Analyze forex chart using Gemini Vision with specific trading methodology"""
+        """Original chart analysis method (kept as backup)"""
         try:
             # Load and prepare image
             image = Image.open(image_path)
@@ -174,7 +339,7 @@ class ForexGeminiProcessor:
             return "Unable to analyze chart - manual review required"
     
     async def _format_forex_signal(self, message_data: Dict[str, Any], chart_analysis: str) -> str:
-        """Format forex signal with accurate chart analysis"""
+        """Original signal formatting method (kept as backup)"""
         prompt = f"""
         Create a forex trading signal notification based on this professional chart analysis.
 
@@ -291,7 +456,7 @@ class ForexGeminiProcessor:
             raise
     
     def _create_fallback_forex_message(self, message_data: Dict[str, Any], error_note: str = "") -> str:
-        """Create fallback forex message when AI processing fails with chart context"""
+        """Create fallback forex message when AI processing fails with enhanced chart context"""
         timestamp = message_data['timestamp'].strftime("%H:%M")
         error_suffix = f" ({error_note})" if error_note else ""
         
@@ -316,12 +481,8 @@ class ForexGeminiProcessor:
         direction = forex_patterns['direction'][0] if forex_patterns['direction'] else "TBD"
         
         if message_data.get('has_media'):
-            if message_data.get('requires_chart_analysis', False):
-                content = f"📊 Trading chart received - Risk/Reward tool analysis needed{error_suffix}"
-                analysis_note = "Look for blue/red risk reward tool: Entry at junction, Blue=Target, Red=StopLoss"
-            else:
-                content = f"📊 Chart image - Manual analysis required{error_suffix}"
-                analysis_note = "Check chart for entry, stop loss, and take profit levels"
+            content = f"📊 Trading chart received - Enhanced analysis needed{error_suffix}"
+            analysis_note = "Look for colored zones: Blue/Green=Target, Red/Pink=StopLoss, Horizontal lines=Entry"
         else:
             content = text_content[:200] if text_content else "Trading signal received"
             analysis_note = "Review original message for trading details"
@@ -331,8 +492,8 @@ class ForexGeminiProcessor:
 📈 **Instrument**: {instrument}
 📱 **Direction**: {direction}
 💰 **Entry**: Manual Review Required
-🛑 **Stop Loss**: Check Chart
-🎯 **Take Profit**: Check Chart
+🛑 **Stop Loss**: Check Chart/Message
+🎯 **Take Profit**: Check Chart/Message
 
 📝 **Content**: {content}
 💡 **Note**: {analysis_note}
@@ -342,8 +503,8 @@ class ForexGeminiProcessor:
 🕐 **Time**: {timestamp}
 
 ---
-⚠️ Manual Analysis Required
-📊 Check Risk/Reward Tool Colors"""
+⚠️ Enhanced Analysis Required
+📊 Use PDF methodology for accurate reading"""
     
     async def test_connection(self) -> bool:
         """Test Gemini API connection for forex processing with better error handling"""
@@ -387,7 +548,7 @@ class ForexGeminiProcessor:
 
 # Test function
 async def test_forex_gemini_processor():
-    """Test forex Gemini processor functionality"""
+    """Test enhanced forex Gemini processor functionality"""
     processor = ForexGeminiProcessor()
     
     if not await processor.test_connection():
@@ -405,10 +566,10 @@ async def test_forex_gemini_processor():
     
     try:
         formatted = await processor.process_text_message(sample_forex_message)
-        logger.info(f"✅ Forex text processing test successful:\n{formatted}")
+        logger.info(f"✅ Enhanced forex text processing test successful:\n{formatted}")
         return True
     except Exception as e:
-        logger.error(f"❌ Forex text processing test failed: {e}")
+        logger.error(f"❌ Enhanced forex text processing test failed: {e}")
         return False
 
 if __name__ == "__main__":
